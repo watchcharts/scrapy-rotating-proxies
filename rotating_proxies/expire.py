@@ -51,7 +51,17 @@ class Proxies(object):
         available = list(self.unchecked | self.good)
         if not available:
             return None
-        return random.choice(available)
+
+        earliest_used_proxy = None
+        for proxy in available:
+            state = self.proxies[proxy]
+            if earliest_used_proxy is None or state.last_used_time < self.proxies[earliest_used_proxy].last_used_time:
+                earliest_used_proxy = proxy
+        
+        self.proxies[earliest_used_proxy].last_used_time = time.time()
+
+        logger.debug("Proxy <%s> has been selected as next proxy" % earliest_used_proxy)
+        return earliest_used_proxy
 
     def get_proxy(self, proxy_address):
         """
@@ -144,6 +154,7 @@ class ProxyState(object):
     failed_attempts = attr.ib(default=0)
     next_check = attr.ib(default=None)
     backoff_time = attr.ib(default=None)  # for debugging
+    last_used_time = attr.ib(default=0)
 
 
 def exp_backoff(attempt, cap=3600, base=300):
